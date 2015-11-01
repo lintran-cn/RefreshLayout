@@ -2,39 +2,68 @@ package com.ling.refreshlayout.loadmore;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.AbsListView;
 
 /**
+ * Load More wrap.
+ * add load more function to target view
+ *
  * Created by lingquan(quan.ling@hotmail.com) on 15/10/31.
  */
-public class LoadMoreSupport {
+public class LoadMoreSupport{
 
     /**
-     * 处理loadmore发出的事件
+     * 处理loadmore的事件
+     * 如在此方法里调用接口,加载数据
      */
     public interface LoadMoreHandler {
 
         /**
-         * Check can do refresh or not. For example the content is empty or the first child is in view.
+         * 检查是否加载下一页
          */
         boolean checkCanDoLoadMore(final LoadMoreSupport loadMoreContainer, final View content);
 
+        /**
+         * 触发加载下一页
+         * 加载完成后需调用 {@link LoadMoreSupport#loadMoreFinish(boolean, boolean)}
+         * or {@link LoadMoreSupport#loadMoreError(int, String)}
+         */
         void onLoadMore(LoadMoreSupport loadMoreContainer);
     }
 
     /**
+     * 处理loadmore状态改变时,变更相应UI
      * 自定义LoadMore时,实现该接口
      */
     public interface LoadMoreUIHandler {
-
+        /**
+         * 开始加载下一页
+         * @param container
+         */
         void onLoading(LoadMoreSupport container);
 
+        /**
+         * 下一页加载成功
+         * @param container
+         * @param empty
+         * @param hasMore
+         */
         void onLoadFinish(LoadMoreSupport container, boolean empty, boolean hasMore);
 
+        /**
+         * 等待加载下一页
+         * @param container
+         */
         void onWaitToLoadMore(LoadMoreSupport container);
 
+        /**
+         * 加载下一页发生错误
+         * @param container
+         * @param errorCode
+         * @param errorMessage
+         */
         void onLoadError(LoadMoreSupport container, int errorCode, String errorMessage);
     }
-
 
     private LoadMoreUIHandler mLoadMoreUIHandler;
     private LoadMoreHandler mLoadMoreHandler;
@@ -47,7 +76,7 @@ public class LoadMoreSupport {
 
     private View mFooterView;
 
-    private AbsLoadMoreHolder mLoadMoreHolder;
+    private AbsLoadMoreIntegration mLoadMoreHolder;
 
     public LoadMoreSupport(View content) {
         mLoadMoreHolder = getLoadMoreView(content);
@@ -55,7 +84,7 @@ public class LoadMoreSupport {
         init();
     }
 
-    public LoadMoreSupport(AbsLoadMoreHolder loadMoreHolder) {
+    public LoadMoreSupport(AbsLoadMoreIntegration loadMoreHolder) {
         mLoadMoreHolder = loadMoreHolder;
 
         init();
@@ -68,8 +97,10 @@ public class LoadMoreSupport {
 //        setLoadMoreUIHandler(footerView);
     }
 
-
-    protected void onReachBottom() {
+    /**
+     * 由{@link AbsLoadMoreIntegration#bindScroll(LoadMoreSupport)}绑定的滚动事件中到达底部时触发
+     */
+    public void onReachBottom() {
         // if has error, just leave what it should be
         if (mLoadError) {
             return;
@@ -83,9 +114,6 @@ public class LoadMoreSupport {
         }
     }
 
-    protected AbsLoadMoreHolder getLoadMoreView(View content) {
-        return new RecyclerViewLoadMoreHolder((RecyclerView) content, this);
-    }
 
     public void setShowLoadingForFirstPage(boolean showLoading) {
         mShowLoadingForFirstPage = showLoading;
@@ -94,13 +122,8 @@ public class LoadMoreSupport {
     public void setAutoLoadMore(boolean autoLoadMore) {
         mAutoLoadMore = autoLoadMore;
     }
-//
-//    @Override
-//    public void setOnScrollListener(AbsListView.OnScrollListener l) {
-//        mOnScrollListener = l;
-//    }
 
-    public void setLoadMoreHolder(View view) {
+    public void setLoadMoreView(View view) {
         // has not been initialized
         mFooterView = view;
 
@@ -119,14 +142,6 @@ public class LoadMoreSupport {
         });
 
         mLoadMoreHolder.addLoadMoreView(view);
-    }
-
-    public void setLoadMoreUIHandler(LoadMoreUIHandler handler) {
-        mLoadMoreUIHandler = handler;
-    }
-
-    public void setLoadMoreHandler(LoadMoreHandler handler) {
-        mLoadMoreHandler = handler;
     }
 
     /**
@@ -151,6 +166,29 @@ public class LoadMoreSupport {
         mLoadError = true;
         if (mLoadMoreUIHandler != null) {
             mLoadMoreUIHandler.onLoadError(this, errorCode, errorMessage);
+        }
+    }
+
+    public void setLoadMoreUIHandler(LoadMoreUIHandler handler) {
+        mLoadMoreUIHandler = handler;
+    }
+
+    public void setLoadMoreHandler(LoadMoreHandler handler) {
+        mLoadMoreHandler = handler;
+    }
+
+    /**
+     * 根据View类型,初始化不同的LoadMoreIntegration
+     * @param content 目标View
+     * @return
+     */
+    protected AbsLoadMoreIntegration getLoadMoreView(View content) {
+        if (content instanceof AbsListView) {
+            return new LoadMoreListViewIntegration((AbsListView)content);
+        }else if (content instanceof RecyclerView) {
+            return new LoadMoreRecyclerViewIntegration((RecyclerView) content);
+        } else {
+            return null;
         }
     }
 

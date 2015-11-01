@@ -2,28 +2,29 @@ package com.ling.refreshlayout.loadmore;
 
 import android.view.View;
 import android.widget.AbsListView;
+import android.widget.ListView;
 
 /**
  * Created by lingquan(quan.ling@hotmail.com) on 15/10/31.
  */
-public class AbsListViewLoadMoreHolder extends AbsLoadMoreHolder<AbsListView> {
+public class LoadMoreListViewIntegration extends AbsLoadMoreIntegration<ListView> {
 
-    public AbsListViewLoadMoreHolder(AbsListView content, LoadMoreSupport loadMoreSupport) {
-        super(content, loadMoreSupport);
+    public LoadMoreListViewIntegration(ListView content) {
+        super(content);
     }
 
     @Override
     public void addLoadMoreView(View v) {
-
+        getContent().addFooterView(v);
     }
 
     @Override
     public void removeLoadMoreView(View v) {
-
+        getContent().removeFooterView(v);
     }
 
     @Override
-    public void bindScroll() {
+    public void bindScroll(final LoadMoreSupport support) {
         mContent.setOnScrollListener(new AbsListView.OnScrollListener() {
 
             private boolean mIsEnd = false;
@@ -36,7 +37,7 @@ public class AbsListViewLoadMoreHolder extends AbsLoadMoreHolder<AbsListView> {
 //                }
                 if (scrollState == SCROLL_STATE_IDLE) {
                     if (mIsEnd) {
-                        getLoadMoreSupport().onReachBottom();
+                        support.onReachBottom();
                     }
                 }
             }
@@ -53,5 +54,7 @@ public class AbsListViewLoadMoreHolder extends AbsLoadMoreHolder<AbsListView> {
                 }
             }
         });
+
     }
+
 }
